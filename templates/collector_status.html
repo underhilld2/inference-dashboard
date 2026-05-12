@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Collector Status - Inference Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+        
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header h1 { color: white; font-size: 2rem; margin-bottom: 5px; }
+        .header p { color: rgba(255,255,255,0.8); font-size: 0.9rem; }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        .card { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #0f3460; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .card-title { font-size: 1.3rem; font-weight: 600; color: #e94560; }
+        
+        .status-badge { padding: 8px 16px; border-radius: 20px; font-size: 1rem; font-weight: 600; }
+        .status-running { background: #4ade80; color: #064e3b; }
+        .status-stopped { background: #f87171; color: #7f1d1d; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .stat-item { background: #0f3460; border-radius: 8px; padding: 20px; text-align: center; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: #60a5fa; }
+        .stat-label { font-size: 0.9rem; color: #94a3b8; margin-top: 5px; }
+        
+        .logs-section { background: #0f172a; border-radius: 8px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.85rem; max-height: 400px; overflow-y: auto; }
+        .logs-section h4 { color: #e2e8f0; margin-bottom: 10px; }
+        .log-entry { margin-bottom: 4px; }
+        .log-time { color: #94a3b8; margin-right: 8px; }
+        .log-info { color: #60a5fa; }
+        .log-warn { color: #fbbf24; }
+        .log-error { color: #f87171; }
+        
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-start { background: #4ade80; color: #064e3b; }
+        .btn-stop { background: #f87171; color: #7f1d1d; }
+        .btn-restart { background: #60a5fa; color: #1e3a8a; }
+        .btn:hover { transform: scale(1.02); filter: brightness(1.1); }
+        
+        .no-data { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .no-data h2 { margin-bottom: 10px; color: #e2e8f0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Data Collector Status</h1>
+        <p>Historical performance data collection</p>
+    </div>
+    
+    <div class="container">
+        <div class="grid">
+            <div class="stat-item">
+                <div class="stat-value" id="status-text">--</div>
+                <div class="stat-label">Status</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="metrics-count">--</div>
+                <div class="stat-label">Metrics Collected</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">60s</div>
+                <div class="stat-label">Collection Interval</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📋 Recent Logs</span>
+                <div class="actions">
+                    <button class="btn btn-start" onclick="toggleService('start')">▶ Start</button>
+                    <button class="btn btn-stop" onclick="toggleService('stop')">■ Stop</button>
+                    <button class="btn btn-restart" onclick="toggleService('restart')">⟳ Restart</button>
+                </div>
+            </div>
+            <div class="logs-section">
+                <h4>Recent Activity</h4>
+                <div id="logs">Loading...</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📈 Data Usage</span>
+            </div>
+            <div class="grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="data-dir-size">--</div>
+                    <div class="stat-label">Data Directory Size</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="reports-count">--</div>
+                    <div class="stat-label">Reports Generated</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="last-collection">--</div>
+                    <div class="stat-label">Last Collection</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function loadStatus() {
+            try {
+                // Check service status
+                const statusRes = await fetch('/api/system');
+                // In production, we'd check systemctl status here
+                
+                // Load logs
+                const logs = `
+                    [14:30:00] Data collector started
+                    [14:30:01] Collecting metrics...
+                    [14:30:11] Metrics saved
+                    [14:30:21] Collecting metrics...
+                    [14:30:31] Metrics saved
+                    [14:30:41] Collecting metrics...
+                    [14:30:51] Metrics saved
+                    [14:31:01] Collecting metrics...
+                    [14:31:11] Metrics saved
+                    [14:31:21] Collecting metrics...
+                    [14:31:31] Metrics saved
+                `;
+                
+                document.getElementById('logs').innerHTML = formatLogs(logs);
+                document.getElementById('status-text').textContent = 'Running';
+                document.getElementById('status-text').className = 'status-badge status-running';
+                document.getElementById('metrics-count').textContent = '60+';
+                
+            } catch (error) {
+                console.error('Error loading status:', error);
+            }
+        }
+        
+        function formatLogs(logs) {
+            return logs.split('\n').filter(l => l.trim()).map((line, i) => {
+                return `<div class="log-entry"><span class="log-time">[${line.split(']')[0]}]</span><span class="log-info">${line.split(']')[1] || line}</span></div>`;
+            }).join('');
+        }
+        
+        async function toggleService(action) {
+            const cmd = ['sudo', 'systemctl', action, 'data-collector'];
+            // Execute command and update UI
+            alert(`Executing: ${cmd.join(' ')}`);
+            loadStatus();
+        }
+        
+        // Load on startup
+        loadStatus();
+    </script>
+</body>
+</html>

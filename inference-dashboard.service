@@ -1,0 +1,16 @@
+[Unit]
+Description=Inference Service Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=davidu
+Group=davidu
+WorkingDirectory=/home/davidu/inference-dashboard
+ExecStart=/home/davidu/inference-dashboard/venv/bin/python3 /home/davidu/inference-dashboard/app.py
+Restart=on-failure
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

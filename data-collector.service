@@ -1,0 +1,16 @@
+[Unit]
+Description=Inference Dashboard Data Collector
+After=network.target
+
+[Service]
+Type=simple
+User=davidu
+Group=davidu
+WorkingDirectory=/home/davidu/inference-dashboard
+ExecStart=/home/davidu/inference-dashboard/venv/bin/python3 /home/davidu/inference-dashboard/data_collector.py
+Restart=on-failure
+RestartSec=30
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
